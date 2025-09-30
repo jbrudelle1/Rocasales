@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Rocabella · Devis Mariage & Événement</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo">R</div>
+      <div class="titles">
+        <h1>Rocabella</h1>
+        <p id="subtitle">Gestion des devis · Mariages & Événements</p>
+      </div>
+    </div>
+    <nav class="top-nav">
+      <button data-view="backoffice" class="nav-btn active">Back-Office</button>
+      <button data-view="builder" class="nav-btn">Créer un devis</button>
+      <button data-view="viewer" class="nav-btn">Lien client</button>
+      <select id="uiLang" class="lang-switch">
+        <option value="fr">FR</option>
+        <option value="en">EN</option>
+      </select>
+    </nav>
+  </header>
+
+  <main id="app">
+
+    <!-- BACK-OFFICE -->
+    <section id="view-backoffice" class="view visible">
+      <div class="panel">
+        <h2>Catalogue produits</h2>
+        <form id="productForm" class="grid two">
+          <input type="hidden" name="id" />
+          <label>
+            <span>Nom (FR)</span>
+            <input required name="nom_fr" placeholder="Ex: Dîner buffet signature" />
+          </label>
+          <label>
+            <span>Name (EN)</span>
+            <input required name="nom_en" placeholder="Ex: Signature buffet dinner" />
+          </label>
+          <label>
+            <span>Prix unitaire HT</span>
+            <input required name="prix_unitaire_ht" type="number" min="0" step="0.01" placeholder="ex: 75" />
+          </label>
+          <label>
+            <span>Type tarification</span>
+            <select name="type_tarification" required>
+              <option value="fixe">fixe</option>
+              <option value="par_personne">par_personne</option>
+              <option value="par_nuit">par_nuit</option>
+            </select>
+          </label>
+          <label>
+            <span>Taux TVA</span>
+            <select name="taux_tva" required>
+              <option value="0">0%</option>
+              <option value="0.10">10%</option>
+              <option value="0.20">20%</option>
+            </select>
+          </label>
+          <div class="actions">
+            <button class="btn primary" type="submit">Enregistrer produit</button>
+            <button class="btn subtle" type="reset" id="resetProduct">Réinitialiser</button>
+          </div>
+        </form>
+        <div class="table-wrap">
+          <table id="productsTable">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nom (FR)</th><th>Name (EN)</th><th>Prix HT</th><th>Type</th><th>TVA</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Packages prédéfinis</h2>
+        <form id="packageForm" class="stack">
+          <input type="hidden" name="id" />
+          <label>
+            <span>Nom du package</span>
+            <input required name="nom_package" placeholder="Ex: Mariage 3 jours" />
+          </label>
+
+          <div class="subsection">
+            <div class="subheader">
+              <h3>Conditions de paiement</h3>
+              <button class="btn subtle" type="button" id="addPayment">Ajouter une échéance</button>
+            </div>
+            <div id="paymentsList" class="list-grid"></div>
+            <p class="hint">Chaque ligne: % du total et échéance avant l’événement (jours ou mois).</p>
+          </div>
+
+          <div class="subsection">
+            <div class="subheader">
+              <h3>Structure produits par jour</h3>
+              <div class="inline">
+                <label class="inline">
+                  <span>Durée (jours, max 15)</span>
+                  <input id="packageDuration" type="number" min="1" max="15" value="3" />
+                </label>
+                <button class="btn subtle" type="button" id="buildDays">Générer jours</button>
+              </div>
+            </div>
+            <div id="daysBuilder" class="days-grid"></div>
+            <p class="hint">Associez des produits du catalogue à chaque jour avec quantités par défaut.</p>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" type="submit">Enregistrer package</button>
+            <button class="btn subtle" type="reset" id="resetPackage">Réinitialiser</button>
+          </div>
+        </form>
+
+        <div class="table-wrap">
+          <table id="packagesTable">
+            <thead>
+              <tr>
+                <th>ID</th><th>Nom</th><th>Échéances</th><th>Jours</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- BUILDER -->
+    <section id="view-builder" class="view">
+      <div class="panel">
+        <h2>Créer un devis</h2>
+        <form id="quoteForm" class="grid two">
+          <label>
+            <span>Nom du client</span>
+            <input required name="Nom_Client" placeholder="Ex: Martin & Ortega" />
+          </label>
+          <label>
+            <span>Language</span>
+            <select name="Langue" required>
+              <option value="fr">FR</option>
+              <option value="en">EN</option>
+            </select>
+          </label>
+          <label>
+            <span>Date début</span>
+            <input required name="Date_Debut" type="date" />
+          </label>
+          <label>
+            <span>Date fin (max 15 jours)</span>
+            <input required name="Date_Fin" type="date" />
+          </label>
+          <label>
+            <span>Package</span>
+            <select name="Nom_Package_Choisi" id="quotePackage"></select>
+          </label>
+          <label>
+            <span>Nombre de personnes</span>
+            <input name="Nombre_Personnes" id="quotePax" type="number" min="1" placeholder="Obligatoire si produits par personne" />
+          </label>
+          <label class="wide">
+            <span>Date d’expiration du devis</span>
+            <input required name="Date_Expiration_Devis" type="date" />
+          </label>
+        </form>
+        <div class="actions">
+          <button id="buildStructure" class="btn primary">Générer structure jour par jour</button>
+        </div>
+      </div>
+
+      <div id="daysEditor" class="panel">
+        <h2>Structure du séjour</h2>
+        <div id="daysEditorInner" class="days-editor"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Conditions</h2>
+        <label class="stack">
+          <span>T&C générales</span>
+          <textarea id="termsGeneral" rows="4">Toutes prestations sous réserve de disponibilité. Acompte et conditions de paiement selon le calendrier joint. Les prix s’entendent en euros, taxes en vigueur en sus. Politique d’annulation et de responsabilité civile applicables.</textarea>
+        </label>
+        <label class="stack">
+          <span>Conditions particulières</span>
+          <textarea id="termsCustom" rows="4" placeholder="Ajouter les conditions spécifiques négociées"></textarea>
+        </label>
+      </div>
+
+      <div class="panel">
+        <h2>Récapitulatif</h2>
+        <div id="quoteSummary"></div>
+        <div class="actions end">
+          <button id="saveQuote" class="btn primary">Générer lien client</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEWER -->
+    <section id="view-viewer" class="view">
+      <div class="panel">
+        <h2>Devis client</h2>
+        <div class="stack">
+          <label class="inline">
+            <span>Coller l’ID du devis</span>
+            <input id="viewerId" placeholder="Ex: q_abc123" />
+          </label>
+          <div class="actions">
+            <button id="loadQuote" class="btn">Charger</button>
+          </div>
+          <p class="hint">Un lien sécurisé simulé ressemble à index.html#view/q_abc123</p>
+        </div>
+      </div>
+
+      <div id="clientQuote" class="panel client"></div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <div>Rocabella · Côte d’Azur</div>
+    <div class="muted">PMS Mews · CRM Brevo · Comptabilité SAGE · Site Webflow · Paie Payfit · Planning Skello</div>
+  </footer>
+
+  <template id="tpl-payment">
+    <div class="payment-row">
+      <label><span>%</span><input class="pay-percent" type="number" min="0" max="100" step="1" value="30" /></label>
+      <label><span>Échéance</span>
+        <select class="pay-unit">
+          <option value="days">jours avant</option>
+          <option value="months">mois avant</option>
+        </select>
+      </label>
+      <label><span>Valeur</span><input class="pay-value" type="number" min="0" step="1" value="30" /></label>
+      <button class="btn icon danger remove-payment" type="button" title="Supprimer">✕</button>
+    </div>
+  </template>
+
+  <template id="tpl-day-line">
+    <div class="day-line">
+      <select class="line-product"></select>
+      <input class="line-qty" type="number" min="0" step="1" value="1" />
+      <div class="line-type badge"></div>
+      <div class="line-vat badge"></div>
+      <button class="btn icon danger remove-line" type="button" title="Supprimer">✕</button>
+    </div>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
