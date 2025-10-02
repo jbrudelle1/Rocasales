@@ -19,7 +19,7 @@ const i18n = {
     totalHT: 'Total HT',
     totalTTC: 'Total TTC',
     vat: 'TVA',
-    expiration: 'Date d’expiration du devis',
+    expiration: 'Date d'expiration du devis',
     accept: 'Accepter le devis',
     accepted: 'Devis accepté',
     package: 'Package',
@@ -86,7 +86,6 @@ function ensureSeeds() {
           { percent: 20, unit: 'days', value: 7 }
         ],
         structure_produits_par_jour: [
-          // Chaque jour: lignes { productId, qtyDefault }
           [{ productId: 'p_welcome', qtyDefault: 1 }, { productId: 'p_breakfast', qtyDefault: 1 }],
           [{ productId: 'p_dinner', qtyDefault: 1 }, { productId: 'p_breakfast', qtyDefault: 1 }, { productId: 'p_templeset', qtyDefault: 1 }],
           [{ productId: 'p_brunch', qtyDefault: 1 }]
@@ -142,7 +141,7 @@ function renderProductsTable() {
     const del = e.target.getAttribute('data-del');
     if (del) {
       saveJSON(LS_KEYS.CATALOGUE, items.filter(x => x.id !== del));
-      renderProductsTable(); renderProductsOptions(); // also refresh selects
+      renderProductsTable(); renderProductsOptions();
     }
   }, { once: true });
 }
@@ -234,7 +233,6 @@ function handlePackageForm() {
     const id = f.id.value || uid('pack_');
     const nom_package = f.nom_package.value.trim();
 
-    // collect payments
     const conds = [];
     $$('.payment-row', payments).forEach(row => {
       conds.push({
@@ -244,7 +242,6 @@ function handlePackageForm() {
       });
     });
 
-    // collect structure per day
     const struct = [];
     $$('.day-products').forEach(dayWrap => {
       const dayLines = [];
@@ -265,7 +262,6 @@ function handlePackageForm() {
     renderPackagesTable(); populatePackagesSelect();
   });
 
-  // init defaults
   addPaymentRow(payments, { percent:30, unit:'months', value:6 });
   addPaymentRow(payments, { percent:50, unit:'days', value:30 });
   addPaymentRow(payments, { percent:20, unit:'days', value:7 });
@@ -305,7 +301,6 @@ function renderPackagesTable() {
       const dur = pack.structure_produits_par_jour.length || 1;
       $('#packageDuration').value = dur;
       renderDaysBuilder(dur);
-      // load lines
       const cat = loadJSON(LS_KEYS.CATALOGUE, []);
       pack.structure_produits_par_jour.forEach((day, idx) => {
         const dayWrap = $$('.day-products')[idx];
@@ -344,14 +339,13 @@ function populatePackagesSelect() {
 }
 
 function renderProductsOptions() {
-  // used by back-office builders only; builder uses dynamic UI
   // kept for future extension if needed
 }
 
 function daysBetween(d1, d2) {
   const a = new Date(d1), b = new Date(d2);
   const ms = b - a;
-  const days = Math.floor(ms / (1000*60*60*24)) + 1; // inclusive days
+  const days = Math.floor(ms / (1000*60*60*24)) + 1;
   return Math.min(15, Math.max(1, days));
 }
 function nightsBetween(d1, d2) {
@@ -373,7 +367,6 @@ function buildDaysEditor() {
   const container = $('#daysEditorInner');
   container.innerHTML = '';
 
-  // Pre-fill from package if any
   const pack = loadJSON(LS_KEYS.PACKAGES, []).find(x => x.id === f.Nom_Package_Choisi.value);
   const cat = loadJSON(LS_KEYS.CATALOGUE, []);
   for (let i=0;i<D;i++) {
@@ -413,7 +406,6 @@ function buildDaysEditor() {
       linesWrap.appendChild(line);
     };
     add.addEventListener('click', () => addLine());
-    // Seed with package defaults if provided
     if (pack && pack.structure_produits_par_jour[i]) {
       for (const l of pack.structure_produits_par_jour[i]) addLine(l.productId, l.qtyDefault);
     }
@@ -422,7 +414,7 @@ function buildDaysEditor() {
   computeQuote();
 }
 
-/* Calculation engine */
+/* Calculation engine - MODIFICATION: Suppression des multiplicateurs contextuels */
 function computeQuote() {
   const f = $('#quoteForm');
   const lang = f.Langue.value;
@@ -432,7 +424,7 @@ function computeQuote() {
   const cat = loadJSON(LS_KEYS.CATALOGUE, []);
   const pack = loadJSON(LS_KEYS.PACKAGES, []).find(x => x.id === f.Nom_Package_Choisi.value);
 
-  const detailDays = []; // per day: lines [{prod, qty, baseQty, ht, tva, ttc, taux}]
+  const detailDays = [];
   const taxTotals = { '0':0, '0.10':0, '0.20':0 };
   let totalHT = 0, totalTTC = 0;
 
@@ -443,15 +435,10 @@ function computeQuote() {
       if (!pid) return;
       const prod = cat.find(x => x.id === pid);
       let qty = Math.max(0, parseInt($('.line-qty', line).value||'0',10));
+      
+      // MODIFICATION: La quantité calculée est maintenant égale à la quantité saisie
+      // Plus de multiplicateur par personne ou par nuit
       let computedQty = qty;
-
-      // apply contextual multipliers
-      if (prod.type_tarification === 'par_personne') {
-        if (!pax) { /* require pax */ }
-        computedQty = qty * (pax || 0);
-      } else if (prod.type_tarification === 'par_nuit') {
-        computedQty = qty * Math.max(1, nights);
-      }
 
       const ht = prod.prix_unitaire_ht * computedQty;
       const tva = ht * prod.taux_tva;
@@ -474,7 +461,6 @@ function computeQuote() {
     detailDays.push(lines);
   });
 
-  // Render summary
   const host = $('#quoteSummary');
   host.innerHTML = '';
   const left = document.createElement('div');
@@ -517,7 +503,6 @@ function computeQuote() {
   wrap.appendChild(right);
   host.appendChild(wrap);
 
-  // attach computed memo to form for saving
   host.dataset.totalHT = String(totalHT);
   host.dataset.totalTTC = String(totalTTC);
   host.dataset.tax0 = String(taxTotals['0']);
@@ -528,7 +513,6 @@ function computeQuote() {
   host.dataset.start = start;
   host.dataset.end = end;
 
-  // store pack payments for later viewer
   host.dataset.payments = pack ? JSON.stringify(pack.conditions_paiement) : JSON.stringify([]);
 }
 
@@ -566,7 +550,6 @@ function saveQuote() {
 
   const link = `${location.origin}${location.pathname}#view/${quoteId}`;
   alert(`Lien client généré:\n${link}`);
-  // Also show in viewer tab
   $('#viewerId').value = quoteId;
   switchView('viewer');
   loadQuoteById(quoteId);
@@ -586,7 +569,7 @@ function computeDueDate(startISO, unit, value) {
 function loadQuoteById(id) {
   const q = loadJSON(LS_KEYS.QUOTES, []).find(x => x.id === id);
   const host = $('#clientQuote');
-  host.innerHTML = '';
+   host.innerHTML = '';
   if (!q) {
     host.innerHTML = `<div class="muted">Devis introuvable</div>`;
     return;
@@ -635,7 +618,6 @@ function loadQuoteById(id) {
   `;
   host.appendChild(totals);
 
-  // Payment schedule
   const sched = document.createElement('div');
   sched.className = 'summary-card';
   sched.innerHTML = `<h3>${lang==='fr'?'Calendrier des paiements':'Payment schedule'}</h3>`;
@@ -656,7 +638,6 @@ function loadQuoteById(id) {
   sched.appendChild(list);
   host.appendChild(sched);
 
-  // Terms
   const terms = document.createElement('div');
   terms.className = 'summary-card';
   terms.innerHTML = `
